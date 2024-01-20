@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-ports
+spec:
+  selector:
+    app: rabbitmq
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      name: management
+      port: 15672
+      targetPort: 15672
+      nodePort: 31672
+    - protocol: TCP
+      name: mq
+      port: 5672
+      targetPort: 5672
+      nodePort: 32672
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  labels:
+    app: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:3.8.27-management-alpine
+        # volumeMounts:
+        #   - name: config-volume
+        #     mountPath: /etc/rabbitmq
+        env:
+          - name: RABBITMQ_DEFAULT_USER
+            value: "rafal"
+          - name: RABBITMQ_DEFAULT_PASS
+            value: "4rafael"
+        ports:
+          - name: http
+            protocol: TCP
+            containerPort: 15672
+          - name: amqp
+            protocol: TCP
+            containerPort: 5672
+        volumeMounts:
+          - mountPath: /var/lib/rabbitmq
+            name: db
+      hostname: rmq-host
+      volumes:
+        - name: db
+          hostPath:
+            type: Directory
+            path: /rabbitmqdata
+      # - name: config-volume
+      #   configMap:
+      #     name: rabbitmq-config
+      #     items:
+      #     - key: rabbitmq.conf
+      #       path: rabbitmq.conf
+      #     - key: enabled_plugins
+      #       path: enabled_plugins
